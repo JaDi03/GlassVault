@@ -5,7 +5,7 @@ Thank you for your interest in contributing. This guide covers the basics of wor
 ## Getting Started
 
 ```bash
-git clone https://github.com/your-org/glassvault.git
+git clone https://github.com/JaDi03/glassvault.git
 cd glassvault
 npm install
 cp .env.example .env

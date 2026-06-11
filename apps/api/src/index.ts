@@ -18,6 +18,8 @@ const PORT = process.env.PORT ?? "3001";
 app.use(cors());
 app.use(express.json());
 
+import chainsRouter from "./routes/chains";
+
 // Health check - verifies server is running
 app.get("/api/health", (_req, res) => {
   res.json({
@@ -27,6 +29,9 @@ app.get("/api/health", (_req, res) => {
     timestamp: new Date().toISOString(),
   });
 });
+
+// Register routes
+app.use("/api/chains", chainsRouter);
 
 // Routes will be registered here in subsequent phases:
 // Phase 2: GET  /api/chains       - chain + relayer capabilities
