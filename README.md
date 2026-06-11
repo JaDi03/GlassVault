@@ -2,8 +2,8 @@
 
 <div align="center">
 
-[![Build Status](https://img.shields.io/github/actions/workflow/status/glassvault/glassvault/ci.yml?branch=main&style=for-the-badge&logo=githubactions&logoColor=white)](https://github.com/glassvault/glassvault/actions)
-[![Version](https://img.shields.io/badge/version-0.1.0-6366f1?style=for-the-badge)](https://github.com/glassvault/glassvault)
+[![Build Status](https://img.shields.io/github/actions/workflow/status/JaDi03/GlassVault/ci.yml?branch=main&style=for-the-badge&logo=githubactions&logoColor=white)](https://github.com/JaDi03/GlassVault/actions)
+[![Version](https://img.shields.io/badge/version-0.1.0-6366f1?style=for-the-badge)](https://github.com/JaDi03/GlassVault)
 [![License](https://img.shields.io/badge/license-MIT-8b5cf6?style=for-the-badge)](./LICENSE)
 [![Node](https://img.shields.io/badge/node-24.x-10b981?style=for-the-badge&logo=node.js&logoColor=white)](https://nodejs.org)
 
