@@ -106,8 +106,8 @@ sequenceDiagram
 ### Installation
 
 ```bash
-git clone https://github.com/your-org/glassvault.git
-cd glassvault
+git clone https://github.com/JaDi03/GlassVault.git
+cd GlassVault
 npm install
 ```
 
