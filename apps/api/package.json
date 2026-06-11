@@ -1,0 +1,29 @@
+{
+  "name": "@glassvault/api",
+  "version": "0.1.0",
+  "description": "GlassVault - Backend Agent (Node.js + Express + TypeScript)",
+  "private": true,
+  "scripts": {
+    "dev": "ts-node-dev --respawn --transpile-only src/index.ts",
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "lint": "eslint src --ext .ts --max-warnings 0",
+    "test": "jest"
+  },
+  "dependencies": {
+    "@glassvault/shared": "*",
+    "cors": "^2.8.5",
+    "dotenv": "^16.5.0",
+    "express": "^4.21.2"
+  },
+  "devDependencies": {
+    "@types/cors": "^2.8.17",
+    "@types/express": "^5.0.3",
+    "@types/jest": "^29.5.14",
+    "@types/node": "^24.0.3",
+    "jest": "^29.7.0",
+    "ts-jest": "^29.3.4",
+    "ts-node-dev": "^2.0.0",
+    "typescript": "^5.8.3"
+  }
+}

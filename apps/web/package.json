@@ -1,0 +1,25 @@
+{
+  "name": "@glassvault/web",
+  "version": "0.1.0",
+  "description": "GlassVault - Frontend (Vite + React + TypeScript)",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "preview": "vite preview",
+    "lint": "eslint src --ext .ts,.tsx --max-warnings 0"
+  },
+  "dependencies": {
+    "@glassvault/shared": "*",
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0"
+  },
+  "devDependencies": {
+    "@types/react": "^19.1.6",
+    "@types/react-dom": "^19.1.5",
+    "@vitejs/plugin-react": "^4.5.2",
+    "typescript": "^5.8.3",
+    "vite": "^6.3.5"
+  }
+}
