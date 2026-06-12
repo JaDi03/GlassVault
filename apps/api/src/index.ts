@@ -19,6 +19,7 @@ app.use(cors());
 app.use(express.json());
 
 import chainsRouter from "./routes/chains";
+import agentRouter from "./routes/agent";
 
 // Health check - verifies server is running
 app.get("/api/health", (_req, res) => {
@@ -32,6 +33,7 @@ app.get("/api/health", (_req, res) => {
 
 // Register routes
 app.use("/api/chains", chainsRouter);
+app.use("/api/agent", agentRouter);
 
 // Routes will be registered here in subsequent phases:
 // Phase 2: GET  /api/chains       - chain + relayer capabilities
