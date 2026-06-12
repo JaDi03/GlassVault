@@ -12,8 +12,10 @@
   },
   "dependencies": {
     "@glassvault/shared": "*",
+    "@metamask/smart-accounts-kit": "^1.6.0",
     "react": "^19.1.0",
-    "react-dom": "^19.1.0"
+    "react-dom": "^19.1.0",
+    "viem": "^2.52.2"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
