@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { ChainSelector } from "./components/ChainSelector";
 import { WalletConnect } from "./components/WalletConnect";
+import { AgentChat } from "./components/AgentChat";
 import { SupportedChainId } from "@glassvault/shared";
 
 /**
@@ -23,19 +24,27 @@ function App() {
         <p className="tagline">Your personal on-chain finance agent</p>
       </header>
       <main className="app-main">
-        <div className="scaffold-notice">
-          <h1>Phase 4 Active</h1>
-          <p>MetaMask Smart Accounts EIP-7715 Integration.</p>
-          <ChainSelector 
-            selectedChainId={selectedChainId} 
-            onSelect={setSelectedChainId} 
-          />
-          <div style={{ marginTop: '2rem' }}>
-            <WalletConnect 
-              selectedChainId={selectedChainId}
-              onConnect={setUserAddress}
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '3rem', width: '100%', maxWidth: '1600px', margin: '0 auto', padding: '0 2rem' }}>
+          
+          <div className="scaffold-notice" style={{ maxWidth: '100%' }}>
+            <h1>Phase 4 Active</h1>
+            <p>MetaMask Smart Accounts EIP-7715 Integration.</p>
+            <ChainSelector 
+              selectedChainId={selectedChainId} 
+              onSelect={setSelectedChainId} 
             />
+            <div style={{ marginTop: '2rem' }}>
+              <WalletConnect 
+                selectedChainId={selectedChainId}
+                onConnect={setUserAddress}
+              />
+            </div>
           </div>
+
+          <div className="chat-section">
+            <AgentChat />
+          </div>
+
         </div>
       </main>
     </div>

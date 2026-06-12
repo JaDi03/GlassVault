@@ -11,9 +11,10 @@ export async function parseIntentWithVenice(
   supportedChains: { id: number; name: string }[]
 ): Promise<AgentIntent> {
   const apiKey = process.env.VENICE_API_KEY;
-  if (!apiKey) {
-    throw new Error("VENICE_API_KEY is not configured.");
-  }
+  // In MOCK MODE we bypass this check so the frontend can test without a real key
+  // if (!apiKey) {
+  //   throw new Error("VENICE_API_KEY is not configured.");
+  // }
 
   const systemPrompt = `You are the brain of GlassVault, a Web3 financial agent.
 Your job is to parse the user's natural language request into a strict JSON object representing an on-chain intent.

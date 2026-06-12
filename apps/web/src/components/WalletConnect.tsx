@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { SupportedChainId } from "@glassvault/shared";
-// Note: We will import from @metamask/delegation-toolkit once we build the session flow.
+import { DelegationPanel } from "./DelegationPanel";
+// Note: We will import from @metamask/smart-accounts-kit once we build the session flow.
 
 interface WalletConnectProps {
   selectedChainId: SupportedChainId;
@@ -10,14 +11,52 @@ interface WalletConnectProps {
 export function WalletConnect({ selectedChainId, onConnect }: WalletConnectProps) {
   const [address, setAddress] = useState<string | null>(null);
   const [isConnecting, setIsConnecting] = useState(false);
+  const [isDelegating, setIsDelegating] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   // Check if MetaMask is installed
   const isMetaMaskInstalled = typeof window !== "undefined" && Boolean((window as any).ethereum);
 
-  const disconnectWallet = () => {
-    setAddress(null);
-    onConnect(null);
+  const [activeSession, setActiveSession] = useState<{ limit: number, expireDays: number } | null>(null);
+
+  const disconnectWallet = async () => {
+    try {
+      if (window.ethereum) {
+        await (window as any).ethereum.request({
+          method: "wallet_revokePermissions",
+          params: [{ eth_accounts: {} }]
+        });
+      }
+    } catch (err) {
+      console.error("Failed to revoke MetaMask permissions:", err);
+    } finally {
+      setAddress(null);
+      setActiveSession(null);
+      onConnect(null);
+    }
+  };
+
+  const handleDelegate = async (spendLimit: number, expireDays: number) => {
+    setIsDelegating(true);
+    try {
+      console.log(`Requesting session key with limit: $${spendLimit} for ${expireDays} days`);
+      await new Promise(r => setTimeout(r, 1500)); // Simulate signing delay
+      setActiveSession({ limit: spendLimit, expireDays });
+    } catch (err: any) {
+      console.error("Delegation failed", err);
+      setError("Failed to grant session key.");
+    } finally {
+      setIsDelegating(false);
+    }
+  };
+
+  const revokeSession = async () => {
+    try {
+      // TODO: Implement actual EIP-7715 wallet_revokePermissions
+      setActiveSession(null);
+    } catch (err) {
+      console.error("Revoke failed", err);
+    }
   };
 
   const connectWallet = async () => {
@@ -68,38 +107,87 @@ export function WalletConnect({ selectedChainId, onConnect }: WalletConnectProps
   return (
     <div className="wallet-connect">
       {address ? (
-        <div className="connected-status" style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-          <span className="wallet-address">
-            Connected: {address.slice(0, 6)}...{address.slice(-4)}
-          </span>
-          <span className="smart-account-badge">EIP-7715 Ready</span>
-          <button 
-            onClick={disconnectWallet} 
-            title="Disconnect"
-            style={{ 
-              background: 'none', 
-              border: 'none', 
-              cursor: 'pointer', 
-              display: 'flex', 
-              alignItems: 'center',
-              padding: '4px'
-            }}
-          >
-            <svg 
-              width="20" 
-              height="20" 
-              viewBox="0 0 24 24" 
-              fill="none" 
-              stroke="#ef4444" 
-              strokeWidth="2" 
-              strokeLinecap="round" 
-              strokeLinejoin="round"
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+          <div className="connected-status" style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+            <span className="wallet-address">
+              Connected: {address.slice(0, 6)}...{address.slice(-4)}
+            </span>
+            <span className="smart-account-badge">EIP-7715 Ready</span>
+            <button 
+              onClick={disconnectWallet} 
+              title="Disconnect"
+              style={{ 
+                background: 'none', 
+                border: 'none', 
+                cursor: 'pointer', 
+                display: 'flex', 
+                alignItems: 'center',
+                padding: '4px'
+              }}
             >
-              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
-              <polyline points="16 17 21 12 16 7"></polyline>
-              <line x1="21" y1="12" x2="9" y2="12"></line>
-            </svg>
-          </button>
+              <svg 
+                width="20" 
+                height="20" 
+                viewBox="0 0 24 24" 
+                fill="none" 
+                stroke="#ef4444" 
+                strokeWidth="2" 
+                strokeLinecap="round" 
+                strokeLinejoin="round"
+              >
+                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+                <polyline points="16 17 21 12 16 7"></polyline>
+                <line x1="21" y1="12" x2="9" y2="12"></line>
+              </svg>
+            </button>
+          </div>
+          
+          {activeSession ? (
+            <div className="delegation-panel" style={{ border: '1px solid rgba(16, 185, 129, 0.3)' }}>
+              <div className="panel-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div>
+                  <h3 style={{ color: '#10b981' }}>Active Session Key</h3>
+                  <p>Agent is authorized and ready.</p>
+                </div>
+                <div style={{ background: 'rgba(16, 185, 129, 0.1)', color: '#10b981', padding: '4px 12px', borderRadius: '20px', fontSize: '0.8rem', fontWeight: 'bold' }}>
+                  ACTIVE
+                </div>
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1.5rem' }}>
+                <div style={{ background: 'rgba(255,255,255,0.05)', padding: '1rem', borderRadius: '8px' }}>
+                  <div style={{ fontSize: '0.8rem', color: '#888', marginBottom: '4px' }}>Spend Limit</div>
+                  <div style={{ fontSize: '1.2rem', fontWeight: 'bold', color: 'white' }}>${activeSession.limit} USDC</div>
+                </div>
+                <div style={{ background: 'rgba(255,255,255,0.05)', padding: '1rem', borderRadius: '8px' }}>
+                  <div style={{ fontSize: '0.8rem', color: '#888', marginBottom: '4px' }}>Time Remaining</div>
+                  <div style={{ fontSize: '1.2rem', fontWeight: 'bold', color: 'white' }}>{activeSession.expireDays} Days</div>
+                </div>
+              </div>
+              <button 
+                onClick={revokeSession}
+                style={{
+                  width: '100%',
+                  background: 'transparent',
+                  border: '1px solid rgba(239, 68, 68, 0.5)',
+                  color: '#ef4444',
+                  padding: '0.8rem',
+                  borderRadius: '8px',
+                  cursor: 'pointer',
+                  fontWeight: 'bold',
+                  transition: 'all 0.2s'
+                }}
+                onMouseOver={(e) => (e.currentTarget.style.background = 'rgba(239, 68, 68, 0.1)')}
+                onMouseOut={(e) => (e.currentTarget.style.background = 'transparent')}
+              >
+                Revoke Session Key
+              </button>
+            </div>
+          ) : (
+            <DelegationPanel 
+              onDelegate={handleDelegate} 
+              isDelegating={isDelegating} 
+            />
+          )}
         </div>
       ) : (
         <div className="connect-prompt">
