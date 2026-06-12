@@ -49,8 +49,8 @@ Example output:
     
     // Simple regex to extract an amount and recipient for testing
     let action: AgentAction = "transfer";
-    let amount = "10";
-    let recipient = "0x0000000000000000000000000000000000001234";
+    const amount = "10";
+    const recipient = "0x0000000000000000000000000000000000001234";
 
     if (userPrompt.toLowerCase().includes("swap")) {
       action = "swap";
@@ -73,6 +73,6 @@ Example output:
     return parsed;
   } catch (error) {
     console.error("[venice.service] Failed to parse intent:", error);
-    throw new Error("Failed to parse your request into a valid action.");
+    throw new Error("Failed to parse your request into a valid action.", { cause: error });
   }
 }
