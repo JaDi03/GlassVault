@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { ChainSelector } from "./components/ChainSelector";
+import { WalletConnect } from "./components/WalletConnect";
 import { SupportedChainId } from "@glassvault/shared";
 
 /**
@@ -10,6 +11,7 @@ import { SupportedChainId } from "@glassvault/shared";
  */
 function App() {
   const [selectedChainId, setSelectedChainId] = useState<SupportedChainId>(84532);
+  const [userAddress, setUserAddress] = useState<string | null>(null);
 
   return (
     <div className="app-shell">
@@ -22,12 +24,18 @@ function App() {
       </header>
       <main className="app-main">
         <div className="scaffold-notice">
-          <h1>Phase 2 Active</h1>
-          <p>Network config loaded from backend.</p>
+          <h1>Phase 4 Active</h1>
+          <p>MetaMask Smart Accounts EIP-7715 Integration.</p>
           <ChainSelector 
             selectedChainId={selectedChainId} 
             onSelect={setSelectedChainId} 
           />
+          <div style={{ marginTop: '2rem' }}>
+            <WalletConnect 
+              selectedChainId={selectedChainId}
+              onConnect={setUserAddress}
+            />
+          </div>
         </div>
       </main>
     </div>
