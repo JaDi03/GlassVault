@@ -25,27 +25,73 @@
 ## Table of Contents
 
 - [Key Features](#-key-features)
+- [Hackathon Resource Integrations](#-hackathon-resource-integrations)
 - [How It Works](#-how-it-works)
 - [Supported Networks](#-supported-networks)
 - [Quick Start](#-quick-start)
 - [Project Structure](#-project-structure)
 - [Tech Stack](#-tech-stack)
-- [License](#-license)
 
 ---
 
-## Key Features
+## 🚀 Hackathon Resource Integrations
 
-- **Plain English Interface**: Describe what you want - Venice AI parses it into a structured on-chain action.
-- **Zero-Key Security**: You never hand over your private keys. MetaMask grants scoped, revocable ERC-7715 permissions per action.
-- **Gasless Execution**: Every transaction is relayed by 1Shot API using ERC-7710 delegation - no ETH needed for gas.
-- **Multi-Chain**: Base Sepolia and Monad Testnet supported, with cross-chain execution via `relayer_send7710TransactionMultichain`.
-- **Autonomous API Payments**: The agent pays x402-gated data APIs using USDC micro-payments, no API key required.
-- **Real-Time Feedback**: 1Shot webhook callbacks push live transaction status to the UI via Server-Sent Events.
+GlassVault is built to showcase the bleeding edge of Ethereum account abstraction using the provided hackathon resources. Here is how we integrated each core component:
+
+### 1. MetaMask Smart Accounts Kit & EIP-7715 (Advanced Permissions)
+Instead of forcing users to sign every single transaction or give up their private keys, GlassVault uses the **MetaMask Smart Accounts Kit** to request **Advanced Permissions (EIP-7715)**. 
+- **How it works:** When you connect your wallet, GlassVault calls `wallet_requestExecutionPermissions`. MetaMask opens a native, human-readable popup asking the user to authorize a specific scoped action (e.g., `erc20-token-periodic` for USDC transfers).
+- **Result:** The Agent receives a cryptographic `PermissionContext` that allows it to execute on behalf of the user, strictly within the boundaries set by the user.
+
+### 2. ERC-7710 Delegation & 1Shot Relayer (Gasless Execution)
+Once the Agent has the permission context, it needs to execute the transaction without making the user pay for gas. We achieve this using the **1Shot API** and **ERC-7710 (Delegated Transactions)**.
+
+```mermaid
+graph LR
+    subgraph User Environment
+        A[MetaMask EOA]
+        B[EIP-7702 Upgrade]
+        C[EIP-7715 Permission]
+        A -->|Grants| C
+        A -.->|Stateless| B
+    end
+
+    subgraph Agent Backend
+        D[AI Intent Parser]
+        E[1Shot Estimate]
+        F[1Shot Send]
+        C --> D
+        D -->|Validates intent| E
+        E -->|Locks gas price| F
+    end
+
+    subgraph 1Shot Relayer
+        G[Pay gas in ETH]
+        H[Redeem Delegation]
+        I[Execute Transfer]
+        F --> G
+        G --> H
+        H --> I
+    end
+
+    style A fill:#E2761B,stroke:#fff,stroke-width:2px,color:#fff
+    style C fill:#E2761B,stroke:#fff,stroke-width:2px,color:#fff
+    style D fill:#125DA3,stroke:#fff,stroke-width:2px,color:#fff
+    style E fill:#239aaa,stroke:#fff,stroke-width:2px,color:#fff
+    style F fill:#239aaa,stroke:#fff,stroke-width:2px,color:#fff
+    style H fill:#239aaa,stroke:#fff,stroke-width:2px,color:#fff
+    style I fill:#10b981,stroke:#fff,stroke-width:2px,color:#fff
+```
+
+- **How it works:** 
+  1. The backend uses `relayer_estimate7710Transaction` to dynamically calculate the fee in USDC.
+  2. The backend batches the *Fee Transfer* and the *User's Target Transfer* together.
+  3. It sends this batch to `relayer_send7710Transaction` along with the EIP-7715 permission context.
+  4. The 1Shot Relayer pays the ETH gas fee on-chain, executes `Redeem Delegations`, takes its USDC fee, and executes the user's intent.
 
 ---
 
-## How It Works
+## 🛠 How It Works
 
 ```mermaid
 sequenceDiagram
@@ -62,133 +108,56 @@ sequenceDiagram
     UI->>Venice: POST /chat/completions - parse intent
     Venice-->>UI: Structured intent JSON
     UI->>User: Show Confirmation Card
-    User->>MM: Grant scoped permission (wallet_grantPermissions)
+    User->>MM: Grant scoped permission (wallet_requestExecutionPermissions)
     MM-->>UI: Delegation context
     UI->>API: Execute intent + delegation
+    API->>Relay: relayer_estimate7710Transaction
+    Relay-->>API: Required fee + context
     API->>Relay: relayer_send7710Transaction (gasless)
     Relay-->>Chain: Execute on-chain action
     Relay->>API: Webhook - confirmed
-    API->>Venice: Generate receipt image
-    Venice-->>UI: PNG receipt card
-    UI->>User: Animated confirmation + receipt
 ```
-
-1. User describes what they want in natural language.
-2. Venice AI (`/chat/completions`) parses the intent into a typed `AgentIntent` object.
-3. A confirmation card shows all action details before any signing.
-4. MetaMask grants a scoped ERC-7715 permission with spend caps and time limits.
-5. The backend agent submits the delegation bundle to the 1Shot relayer.
-6. 1Shot executes the transaction gaslessly on-chain via ERC-7710.
-7. A webhook callback triggers real-time UI updates via SSE.
-8. Venice AI generates a visual receipt (`/images` endpoint).
 
 ---
 
-## Supported Networks
+## 🌐 Supported Networks
 
 | Network | Chain ID | Status | 1Shot Support |
 |---|---|---|---|
-| Base Sepolia | 84532 | Active | Server wallet configured |
-| Monad Testnet | 10143 | Active | Server wallet configured |
+| Base Sepolia | 84532 | Active | Full Support |
+| Monad Testnet | 10143 | Soon | - |
 
 ---
 
-## Quick Start
+## 🚀 Quick Start
 
 ### Prerequisites
-
-- Node.js >= 24 (see `.nvmrc`)
-- Git
-- MetaMask browser extension (Flask recommended for EIP-7702)
+- Node.js >= 24
+- MetaMask browser extension
 - Venice AI API key
-- 1Shot API account with server wallets configured
+- 1Shot API account
 
 ### Installation
-
 ```bash
 git clone https://github.com/JaDi03/GlassVault.git
 cd GlassVault
 npm install
-```
-
-### Configuration
-
-```bash
 cp .env.example .env
-# Fill in your API keys and wallet addresses
-```
-
-### Development
-
-```bash
-# Run frontend + backend concurrently
 npm run dev
-
-# Or individually:
-npm run dev:web   # http://localhost:5173
-npm run dev:api   # http://localhost:3001
-```
-
-### Production Deployment (Vercel)
-
-```bash
-# Install Vercel CLI
-npm i -g vercel
-
-# Deploy
-vercel --prod
 ```
 
 ---
 
-## Project Structure
+## 📁 Project Structure
 
-```
+```text
 glassvault/
 ├── apps/
-│   ├── web/                   - Vite + React frontend (Vercel static)
-│   │   ├── src/
-│   │   │   ├── components/    - UI components (added per phase)
-│   │   │   ├── hooks/         - React hooks (added per phase)
-│   │   │   ├── lib/           - Client utilities (added per phase)
-│   │   │   ├── App.tsx        - Root component
-│   │   │   ├── index.css      - Global design system
-│   │   │   └── main.tsx       - React entry point
-│   │   ├── index.html
-│   │   └── vite.config.ts
-│   │
-│   └── api/                   - Node.js Express backend (Vercel Functions)
-│       └── src/
-│           └── index.ts       - Server entry point (routes added per phase)
-│
+│   ├── web/                   - Vite + React frontend (UI, EIP-7715)
+│   └── api/                   - Node.js Express backend (1Shot Relayer, AI)
 ├── packages/
 │   └── shared/                - Shared TypeScript types
-│       └── src/index.ts       - AgentIntent, TxStatus, ChainConfig, etc.
-│
-├── .github/workflows/ci.yml   - GitHub Actions CI pipeline
-├── .env.example               - Environment variables template
-├── .gitignore
-├── .nvmrc                     - Node version lock (24)
-├── vercel.json                - Vercel deployment config
-└── package.json               - Monorepo workspace root
 ```
 
----
-
-## Tech Stack
-
-- **[Vite](https://vitejs.dev/)**: Frontend build tool and dev server.
-- **[React 19](https://react.dev/)**: UI framework.
-- **[TypeScript 5](https://www.typescriptlang.org/)**: Type safety across the monorepo.
-- **[Express 4](https://expressjs.com/)**: Backend HTTP server and agent runtime.
-- **[MetaMask SDK](https://docs.metamask.io/sdk/)**: Wallet connection and ERC-7715 permissions.
-- **[viem](https://viem.sh/)**: Type-safe Ethereum client for ABI encoding.
-- **[Venice AI](https://docs.venice.ai/)**: Privacy-first LLM for NLP intent parsing and image receipt generation.
-- **[1Shot API](https://1shotapi.com/docs/)**: ERC-7710 gasless transaction relay with webhook callbacks.
-- **[x402 Protocol](https://x402.org/)**: Autonomous HTTP payment standard for API monetization.
-
----
-
-## License
-
+## 📄 License
 [MIT](./LICENSE) - Copyright (c) 2026 GlassVault
