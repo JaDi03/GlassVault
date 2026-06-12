@@ -7,9 +7,11 @@ import { grantAgentPermissions } from "../lib/delegation";
 interface WalletConnectProps {
   selectedChainId: SupportedChainId;
   onConnect: (address: string | null) => void;
+  activeSession: { limit: number, expireDays: number, context?: any } | null;
+  setActiveSession: (session: { limit: number, expireDays: number, context?: any } | null) => void;
 }
 
-export function WalletConnect({ selectedChainId, onConnect }: WalletConnectProps) {
+export function WalletConnect({ selectedChainId, onConnect, activeSession, setActiveSession }: WalletConnectProps) {
   const [address, setAddress] = useState<string | null>(null);
   const [isConnecting, setIsConnecting] = useState(false);
   const [isDelegating, setIsDelegating] = useState(false);
@@ -17,8 +19,6 @@ export function WalletConnect({ selectedChainId, onConnect }: WalletConnectProps
 
   // Check if MetaMask is installed
   const isMetaMaskInstalled = typeof window !== "undefined" && Boolean((window as any).ethereum);
-
-  const [activeSession, setActiveSession] = useState<{ limit: number, expireDays: number, context?: any } | null>(null);
 
   const disconnectWallet = async () => {
     try {

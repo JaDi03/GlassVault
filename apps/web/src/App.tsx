@@ -13,6 +13,7 @@ import { SupportedChainId } from "@glassvault/shared";
 function App() {
   const [selectedChainId, setSelectedChainId] = useState<SupportedChainId>(84532);
   const [userAddress, setUserAddress] = useState<string | null>(null);
+  const [activeSession, setActiveSession] = useState<{ limit: number, expireDays: number, context?: any } | null>(null);
 
   return (
     <div className="app-shell">
@@ -37,12 +38,14 @@ function App() {
               <WalletConnect 
                 selectedChainId={selectedChainId}
                 onConnect={setUserAddress}
+                activeSession={activeSession}
+                setActiveSession={setActiveSession}
               />
             </div>
           </div>
 
           <div className="chat-section">
-            <AgentChat />
+            <AgentChat activeSession={activeSession} />
           </div>
 
         </div>
