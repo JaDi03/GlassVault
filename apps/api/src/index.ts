@@ -8,8 +8,10 @@ import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
 
-// Load environment variables
-dotenv.config();
+import path from "path";
+
+// Load environment variables from monorepo root .env
+dotenv.config({ path: path.resolve(__dirname, "../../../.env") });
 
 const app = express();
 const PORT = process.env.PORT ?? "3001";
