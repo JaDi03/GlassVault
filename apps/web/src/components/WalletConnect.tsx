@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { SupportedChainId } from "@glassvault/shared";
 import { DelegationPanel } from "./DelegationPanel";
+import { grantAgentPermissions } from "../lib/delegation";
 // Note: We will import from @metamask/smart-accounts-kit once we build the session flow.
 
 interface WalletConnectProps {
@@ -17,7 +18,7 @@ export function WalletConnect({ selectedChainId, onConnect }: WalletConnectProps
   // Check if MetaMask is installed
   const isMetaMaskInstalled = typeof window !== "undefined" && Boolean((window as any).ethereum);
 
-  const [activeSession, setActiveSession] = useState<{ limit: number, expireDays: number } | null>(null);
+  const [activeSession, setActiveSession] = useState<{ limit: number, expireDays: number, context?: any } | null>(null);
 
   const disconnectWallet = async () => {
     try {
@@ -39,12 +40,15 @@ export function WalletConnect({ selectedChainId, onConnect }: WalletConnectProps
   const handleDelegate = async (spendLimit: number, expireDays: number) => {
     setIsDelegating(true);
     try {
-      console.log(`Requesting session key with limit: $${spendLimit} for ${expireDays} days`);
-      await new Promise(r => setTimeout(r, 1500)); // Simulate signing delay
-      setActiveSession({ limit: spendLimit, expireDays });
+      console.log(`Requesting real EIP-7715 session key on chain ${selectedChainId}...`);
+      
+      const permissionsContext = await grantAgentPermissions(spendLimit, expireDays, selectedChainId);
+      console.log("Delegation context received:", permissionsContext);
+      
+      setActiveSession({ limit: spendLimit, expireDays, context: permissionsContext });
     } catch (err: any) {
       console.error("Delegation failed", err);
-      setError("Failed to grant session key.");
+      setError(err?.message || "Failed to grant session key.");
     } finally {
       setIsDelegating(false);
     }

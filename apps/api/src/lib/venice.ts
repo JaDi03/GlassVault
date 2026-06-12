@@ -73,6 +73,6 @@ Example output:
     return parsed;
   } catch (error) {
     console.error("[venice.service] Failed to parse intent:", error);
-    throw new Error("Failed to parse your request into a valid action.", { cause: error });
+    throw error;
   }
 }
