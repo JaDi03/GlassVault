@@ -182,7 +182,7 @@ export async function executeVia1ShotRelayer(
     );
   } catch (err: any) {
     console.error("[oneshot] Estimate RPC error:", err.message);
-    throw new Error(`Fee estimation failed: ${err.message}`);
+    throw new Error(`Fee estimation failed: ${err.message}`, { cause: err });
   }
 
   if (!estimate.success) {
