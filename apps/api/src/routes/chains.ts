@@ -13,7 +13,7 @@ const TARGET_CHAINS = [
  * Calls the 1Shot relayer_getCapabilities endpoint for each supported chain
  * to dynamically fetch supported fee tokens and target addresses.
  */
-router.get("/", async (req, res) => {
+router.get("/", async (_req, res) => {
   try {
     const relayerUrl = process.env.ONESHOT_RELAYER_URL || "https://relayer.1shotapi.com/relayers";
     
