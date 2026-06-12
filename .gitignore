@@ -41,3 +41,8 @@ coverage/
 
 # Turbo
 .turbo/
+
+# AI Agent Local Files
+.agents/
+scratch/
+skills-lock.json
