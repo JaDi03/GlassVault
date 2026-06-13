@@ -1,5 +1,4 @@
 import { Router, Request, Response } from "express";
-import * as ed from "@noble/ed25519";
 import stringify from "safe-stable-stringify";
 
 const router = Router();
@@ -56,6 +55,10 @@ async function verifyRelayerWebhook(body: Record<string, unknown>): Promise<bool
   const { signature: _omit, ...rest } = body; // canonicalize without signature
   const message = new TextEncoder().encode(stringify(rest) as string);
   const sig = new Uint8Array(Buffer.from(sigB64, "base64"));
+  
+  // Dynamically import ESM-only module to avoid ERR_REQUIRE_ESM in CommonJS
+  // Using eval prevents TypeScript from transpiling it into a require()
+  const ed = await eval("import('@noble/ed25519')");
   return await ed.verifyAsync(sig, message, pub);
 }
 
