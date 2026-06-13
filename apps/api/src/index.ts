@@ -33,9 +33,12 @@ app.get("/api/health", (_req, res) => {
   });
 });
 
+import webhookRouter from "./routes/webhook";
+
 // Register routes
 app.use("/api/chains", chainsRouter);
 app.use("/api/agent", agentRouter);
+app.use("/api/webhook", webhookRouter);
 
 // Routes will be registered here in subsequent phases:
 // Phase 2: GET  /api/chains       - chain + relayer capabilities

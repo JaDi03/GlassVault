@@ -214,6 +214,7 @@ export async function executeVia1ShotRelayer(
 
   // Step 4: Submit with price-lock context from estimate
   console.log("[oneshot] Step 4: Submitting transaction...");
+  const webhookUrl = process.env.WEBHOOK_URL || "";
   const taskId = await relayerRpc<string>(
     relayerUrl,
     "relayer_send7710Transaction",
@@ -221,62 +222,30 @@ export async function executeVia1ShotRelayer(
       ...sendParams,
       context: estimate.context,
       memo: "glassvault",
+      ...(webhookUrl ? { destinationUrl: webhookUrl } : {})
     }
   );
 
   console.log(`[oneshot] Task submitted! ID: ${taskId}`);
 
-  // Step 5: Poll relayer_getStatus until terminal state (per schemas.md)
-  console.log("[oneshot] Step 5: Polling for status...");
-  const deadline = Date.now() + 60_000; // 60 second timeout
-  while (Date.now() < deadline) {
-    await new Promise((r) => setTimeout(r, 3000));
-
-    try {
-      const status = await relayerRpc<StatusResult>(
-        relayerUrl,
-        "relayer_getStatus",
-        { id: taskId, logs: false }
-      );
-
-      console.log(`[oneshot] Task ${taskId} status: ${status.status}`);
-
-      // 200 = Confirmed (terminal success)
-      if (status.status === 200) {
-        const txHash = status.receipt?.transactionHash || status.hash || taskId;
-        console.log(`[oneshot] ✅ Transaction confirmed! Hash: ${txHash}`);
-        return { success: true, txHash, taskId, status: "confirmed" };
-      }
-
-      // 400 = Rejected (terminal failure)
-      if (status.status === 400) {
-        console.error(`[oneshot] ❌ Transaction rejected: ${status.message}`);
-        throw new Error(`Transaction rejected by relayer: ${status.message}`);
-      }
-
-      // 500 = Reverted (terminal failure)
-      if (status.status === 500) {
-        console.error(`[oneshot] ❌ Transaction reverted:`, status.data);
-        throw new Error(`Transaction reverted on-chain: ${status.message || JSON.stringify(status.data)}`);
-      }
-
-      // 100 = Pending, 110 = Submitted — keep polling
-      if (status.status === 110 && status.hash) {
-        console.log(`[oneshot] Transaction submitted to chain, tx hash: ${status.hash}`);
-      }
-    } catch (err: any) {
-      if (err.message.includes("rejected") || err.message.includes("reverted")) throw err;
-      console.warn(`[oneshot] Polling error (will retry): ${err.message}`);
-    }
+  // Step 5: Webhook handles status updates
+  if (webhookUrl) {
+    console.log(`[oneshot] Step 5: Waiting for 1Shot Webhook at ${webhookUrl} to confirm task ${taskId}.`);
+    return {
+      success: true,
+      txHash: taskId,
+      taskId,
+      status: "processing",
+      message: "Transaction submitted to 1Shot. Awaiting Webhook confirmation.",
+    };
+  } else {
+    console.warn("[oneshot] No WEBHOOK_URL defined. We will not receive real-time updates for task", taskId);
+    return {
+      success: true,
+      txHash: taskId,
+      taskId,
+      status: "processing",
+      message: "Transaction submitted but no webhook is configured for updates.",
+    };
   }
-
-  // Timeout — return what we have
-  console.warn(`[oneshot] Polling timed out for task ${taskId}`);
-  return {
-    success: true,
-    txHash: taskId,
-    taskId,
-    status: "processing",
-    message: "Transaction is still processing. Check back later.",
-  };
 }

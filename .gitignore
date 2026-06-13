@@ -46,3 +46,5 @@ coverage/
 .agents/
 scratch/
 skills-lock.json
+
+context.md
