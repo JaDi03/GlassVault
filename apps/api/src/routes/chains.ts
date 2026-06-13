@@ -4,8 +4,7 @@ const router = Router();
 
 // Chains we want to support in the UI
 const TARGET_CHAINS = [
-  { id: 84532, name: "Base Sepolia" },
-  { id: 10143, name: "Monad Testnet" }
+  { id: 84532, name: "Base Sepolia" }
 ];
 
 /**
@@ -46,7 +45,7 @@ router.get("/", async (_req, res) => {
           supportedFeeTokens: caps.tokens?.map((t: any) => t.symbol) || [],
           isGaslessEnabled: true,
           targetAddress: caps.targetAddress
-        } : (chain.id === 84532 || chain.id === 10143) ? {
+        } : (chain.id === 84532) ? {
           // TESTNET FALLBACK MOCK
           supportedFeeTokens: ["USDC"],
           isGaslessEnabled: true,
