@@ -12,13 +12,6 @@ export const SUPPORTED_CHAINS: Record<SupportedChainId, ChainConfig> = {
     blockExplorerUrl: "https://sepolia.basescan.org",
     nativeCurrency: { name: "Ethereum", symbol: "ETH", decimals: 18 },
   },
-  10143: {
-    id: 10143,
-    name: "Monad Testnet",
-    rpcUrl: "https://testnet-rpc.monad.xyz",
-    blockExplorerUrl: "https://testnet.monadexplorer.com",
-    nativeCurrency: { name: "Monad", symbol: "MON", decimals: 18 },
-  },
 };
 
 /**

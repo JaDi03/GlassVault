@@ -93,7 +93,7 @@ sequenceDiagram
     participant Venice as Venice AI
     participant MM as MetaMask (ERC-7715)
     participant Relay as 1Shot Relayer (ERC-7710)
-    participant Chain as On-Chain (Base Sepolia / Monad)
+    participant Chain as On-Chain (Base Sepolia)
 
     User->>UI: Type goal in plain English
     UI->>Venice: POST /chat/completions - parse intent
@@ -116,7 +116,7 @@ sequenceDiagram
 | Network | Chain ID | Status | 1Shot Support |
 |---|---|---|---|
 | Base Sepolia | 84532 | Active | Full Support |
-| Monad Testnet | 10143 | Soon | - |
+
 
 ---
 

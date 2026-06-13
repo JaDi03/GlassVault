@@ -9,8 +9,7 @@ const router = Router();
 
 // Current target chains for the Venice context
 const TARGET_CHAINS = [
-  { id: 84532, name: "Base Sepolia" },
-  { id: 10143, name: "Monad Testnet" }
+  { id: 84532, name: "Base Sepolia" }
 ];
 
 /**
