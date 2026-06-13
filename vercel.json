@@ -4,11 +4,6 @@
   "installCommand": "npm install",
   "framework": "vite",
   "rewrites": [
-    { "source": "/api/(.*)", "destination": "/apps/api/$1" }
-  ],
-  "functions": {
-    "apps/api/**/*.ts": {
-      "runtime": "nodejs20.x"
-    }
-  }
+    { "source": "/api/(.*)", "destination": "/api/index.ts" }
+  ]
 }
