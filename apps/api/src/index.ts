@@ -10,8 +10,8 @@ import dotenv from "dotenv";
 
 import path from "path";
 
-// Load environment variables from monorepo root .env
-dotenv.config({ path: path.resolve(__dirname, "../../../.env") });
+// Vercel handles environment variables via dashboard.
+// Only load dotenv locally if needed (handled by dev scripts usually).
 
 const app = express();
 const PORT = process.env.PORT ?? "3001";

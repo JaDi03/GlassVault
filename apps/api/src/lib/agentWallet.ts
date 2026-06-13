@@ -1,7 +1,5 @@
 import { privateKeyToAccount, PrivateKeyAccount } from "viem/accounts";
-import * as dotenv from "dotenv";
-
-dotenv.config();
+// dotenv handled by runner
 
 /**
  * Returns the Viem account for the Chat Agent (Parser).
