@@ -1,22 +1,17 @@
 import { Router, Request, Response } from "express";
+import crypto from "node:crypto";
 import stringify from "safe-stable-stringify";
 
 const router = Router();
-// Crypto injection removed: using verifyAsync instead.
 
 type Jwk = { kty: "OKP"; crv: "Ed25519"; kid: string; x: string };
 type Jwks = { keys: Jwk[] };
 
-let jwksCache: { fetchedAt: number; keys: Map<string, Uint8Array> } | null = null;
+let jwksCache: { fetchedAt: number; keys: Map<string, crypto.KeyObject> } | null = null;
 const JWKS_TTL_MS = 10 * 60_000; // 10 minutes
 const JWKS_URL = "https://relayer.1shotapi.com/.well-known/jwks.json";
 
-function base64urlToBytes(b64url: string): Uint8Array {
-  const b64 = b64url.replace(/-/g, "+").replace(/_/g, "/").padEnd(b64url.length + (4 - (b64url.length % 4)) % 4, "=");
-  return new Uint8Array(Buffer.from(b64, "base64"));
-}
-
-async function getJwks(force = false): Promise<Map<string, Uint8Array>> {
+async function getJwks(force = false): Promise<Map<string, crypto.KeyObject>> {
   if (!force && jwksCache && Date.now() - jwksCache.fetchedAt < JWKS_TTL_MS) {
     return jwksCache.keys;
   }
@@ -25,10 +20,14 @@ async function getJwks(force = false): Promise<Map<string, Uint8Array>> {
     const res = await fetch(JWKS_URL);
     if (!res.ok) throw new Error(`JWKS fetch failed: ${res.status}`);
     const { keys } = (await res.json()) as Jwks;
-    const map = new Map<string, Uint8Array>();
+    const map = new Map<string, crypto.KeyObject>();
     for (const k of keys) {
       if (k.kty === "OKP" && k.crv === "Ed25519") {
-        map.set(k.kid, base64urlToBytes(k.x));
+        const pubKey = crypto.createPublicKey({
+          key: { kty: k.kty, crv: k.crv, x: k.x },
+          format: "jwk"
+        });
+        map.set(k.kid, pubKey);
       }
     }
     jwksCache = { fetchedAt: Date.now(), keys: map };
@@ -53,13 +52,10 @@ async function verifyRelayerWebhook(body: Record<string, unknown>): Promise<bool
   }
 
   const { signature: _omit, ...rest } = body; // canonicalize without signature
-  const message = new TextEncoder().encode(stringify(rest) as string);
-  const sig = new Uint8Array(Buffer.from(sigB64, "base64"));
+  const message = Buffer.from(stringify(rest) as string);
+  const sig = Buffer.from(sigB64, "base64");
   
-  // Dynamically import ESM-only module to avoid ERR_REQUIRE_ESM in CommonJS
-  // Using eval prevents TypeScript from transpiling it into a require()
-  const ed = await eval("import('@noble/ed25519')");
-  return await ed.verifyAsync(sig, message, pub);
+  return crypto.verify(null, message, pub, sig);
 }
 
 /**
