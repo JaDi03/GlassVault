@@ -33,9 +33,12 @@ app.get("/api/health", (_req, res) => {
   });
 });
 
+import webhookRouter from "./routes/webhook";
+
 // Register routes
 app.use("/api/chains", chainsRouter);
 app.use("/api/agent", agentRouter);
+app.use("/api/webhook", webhookRouter);
 
 // Routes will be registered here in subsequent phases:
 // Phase 2: GET  /api/chains       - chain + relayer capabilities
@@ -43,9 +46,12 @@ app.use("/api/agent", agentRouter);
 // Phase 7: POST /api/webhooks/1shot - 1Shot status callbacks
 // Phase 7: GET  /api/events/stream  - SSE real-time feed
 
-app.listen(PORT, () => {
-  console.log(`[GlassVault API] Server running on http://localhost:${PORT}`);
-  console.log(`[GlassVault API] Health: http://localhost:${PORT}/api/health`);
-});
+// Only listen locally, Vercel handles routing to exported app automatically
+if (!process.env.VERCEL) {
+  app.listen(PORT, () => {
+    console.log(`[GlassVault API] Server running on http://localhost:${PORT}`);
+    console.log(`[GlassVault API] Health: http://localhost:${PORT}/api/health`);
+  });
+}
 
 export default app;
