@@ -5,8 +5,7 @@ import { bytesToHex } from "viem/utils";
 import { erc7715ProviderActions } from "@metamask/smart-accounts-kit/actions";
 import { decodeDelegations } from "@metamask/smart-accounts-kit/utils";
 
-// --- 1Shot Relayer constants for Base Sepolia (from relayer_getCapabilities) ---
-const RELAYER_TARGET_ADDRESS = "0xf1ef956eff4181Ce913b664713515996858B9Ca9" as `0x${string}`;
+// --- Tokens and Decimals ---
 const USDC_TOKEN_ADDRESS = "0x036CbD53842c5426634e7929541eC2318f3dCF7e" as `0x${string}`;
 const USDC_DECIMALS = 6;
 
@@ -56,7 +55,14 @@ export async function grantAgentPermissions(
   });
   const wallet7715 = walletClient.extend(erc7715ProviderActions());
 
-  console.log(`[delegation] Relayer target: ${RELAYER_TARGET_ADDRESS}`);
+  console.log(`[delegation] Fetching Chat Agent address from backend...`);
+  // Using vite proxy or relative URL assuming it is configured
+  const res = await fetch("/api/agent/address");
+  const data = await res.json();
+  if (!data.success || !data.address) throw new Error("Failed to fetch Chat Agent address");
+  const chatAgentAddress = data.address as `0x${string}`;
+
+  console.log(`[delegation] Chat Agent (Root Delegatee): ${chatAgentAddress}`);
   console.log(`[delegation] User EOA: ${userAddress}`);
   console.log(`[delegation] Requesting EIP-7715 execution permissions...`);
 
@@ -69,7 +75,7 @@ export async function grantAgentPermissions(
   const granted = await wallet7715.requestExecutionPermissions([
     {
       chainId: chain.id,
-      to: RELAYER_TARGET_ADDRESS,
+      to: chatAgentAddress,
       permission: {
         type: "erc20-token-periodic",
         data: {
