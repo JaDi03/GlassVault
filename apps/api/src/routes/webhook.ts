@@ -1,13 +1,9 @@
 import { Router, Request, Response } from "express";
 import * as ed from "@noble/ed25519";
-import Crypto from "node:crypto";
 import stringify from "safe-stable-stringify";
 
 const router = Router();
-
-// Hook @noble/ed25519 hash to Node.js crypto for performance (required by the lib)
-ed.hashes.sha512 = (m: Uint8Array) =>
-  new Uint8Array(Crypto.createHash("sha512").update(Buffer.from(m)).digest());
+// Crypto injection removed: using verifyAsync instead.
 
 type Jwk = { kty: "OKP"; crv: "Ed25519"; kid: string; x: string };
 type Jwks = { keys: Jwk[] };
@@ -60,7 +56,7 @@ async function verifyRelayerWebhook(body: Record<string, unknown>): Promise<bool
   const { signature: _omit, ...rest } = body; // canonicalize without signature
   const message = new TextEncoder().encode(stringify(rest) as string);
   const sig = new Uint8Array(Buffer.from(sigB64, "base64"));
-  return ed.verify(sig, message, pub);
+  return await ed.verifyAsync(sig, message, pub);
 }
 
 /**
