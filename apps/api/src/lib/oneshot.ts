@@ -101,17 +101,6 @@ interface Estimate7710Result {
   error?: string;
 }
 
-// --- Status result type (from schemas.md) ---
-interface StatusResult {
-  id: string;
-  status: 100 | 110 | 200 | 400 | 500;
-  hash?: string;
-  receipt?: { transactionHash: string; blockHash: string; blockNumber: string; gasUsed: string };
-  message?: string;
-  data?: unknown;
-  memo?: string;
-}
-
 /**
  * Uses 1Shot Relayer to execute a delegated transaction (EIP-7710).
  *

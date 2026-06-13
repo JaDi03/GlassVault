@@ -14,6 +14,7 @@
     "dev:web": "npm run dev --workspace=apps/web",
     "dev:api": "npm run dev --workspace=apps/api",
     "build": "npm run build --workspace=packages/shared && npm run build --workspace=apps/web && npm run build --workspace=apps/api",
+    "build:vercel": "npm run build --workspace=packages/shared && npm run build --workspace=apps/web",
     "lint": "npm run lint --workspaces --if-present",
     "test": "npm run test --workspaces --if-present",
     "clean": "npx rimraf apps/*/dist apps/*/node_modules packages/*/dist packages/*/node_modules node_modules"

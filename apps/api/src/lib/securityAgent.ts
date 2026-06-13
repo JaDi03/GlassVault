@@ -7,7 +7,7 @@ export class SecurityFirewall {
    * Validates if a prompt and its intent are safe or malicious.
    * Uses a hybrid validation approach: Heuristics + Venice AI.
    */
-  static async validatePromptSecurity(prompt: string, intent: AgentIntent): Promise<{ safe: boolean; reason?: string }> {
+  static async validatePromptSecurity(prompt: string, _intent: AgentIntent): Promise<{ safe: boolean; reason?: string }> {
     // ==========================================
     // 1. HEURISTIC FILTER (Code)
     // ==========================================
