@@ -6,12 +6,8 @@
  */
 import express from "express";
 import cors from "cors";
-import dotenv from "dotenv";
-
-import path from "path";
 
 // Vercel handles environment variables via dashboard.
-// Only load dotenv locally if needed (handled by dev scripts usually).
 
 const app = express();
 const PORT = process.env.PORT ?? "3001";
@@ -47,7 +43,7 @@ app.use("/api/webhook", webhookRouter);
 // Phase 7: GET  /api/events/stream  - SSE real-time feed
 
 // Only listen locally, Vercel handles routing to exported app automatically
-if (!process.env.VERCEL) {
+if (require.main === module) {
   app.listen(PORT, () => {
     console.log(`[GlassVault API] Server running on http://localhost:${PORT}`);
     console.log(`[GlassVault API] Health: http://localhost:${PORT}/api/health`);
