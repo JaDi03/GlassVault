@@ -112,6 +112,29 @@ export function AgentChat({ activeSession }: AgentChatProps) {
           txHash: execData.txHash,
           status: isConfirmed ? "confirmed" : "executing",
         });
+
+        // Polling loop if it's still executing
+        if (!isConfirmed && execData.taskId && execData.chainId) {
+          const pollInterval = setInterval(async () => {
+            try {
+              const statusRes = await fetch(`/api/agent/status/${execData.chainId}/${execData.taskId}`);
+              const statusData = await statusRes.json();
+              if (statusData.success && statusData.status !== "executing") {
+                clearInterval(pollInterval);
+                const confirmed = statusData.status === "confirmed";
+                updateMessage(execMsgId, {
+                  text: confirmed
+                    ? `✅ Transaction confirmed!\n\nTx Hash: ${statusData.txHash || execData.txHash}`
+                    : `❌ Transaction failed: ${statusData.error}`,
+                  txHash: statusData.txHash || execData.txHash,
+                  status: confirmed ? "confirmed" : "failed",
+                });
+              }
+            } catch (pollErr) {
+              console.error("Polling error:", pollErr);
+            }
+          }, 3000);
+        }
       } else {
         throw new Error(execData.error || "Execution failed");
       }

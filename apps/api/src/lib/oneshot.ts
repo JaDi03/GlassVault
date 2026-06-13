@@ -28,7 +28,7 @@ const FEE_COLLECTOR = "0xE936e8FAf4A5655469182A49a505055B71C17604" as `0x${strin
 /**
  * JSON-RPC helper for 1Shot Relayer calls.
  */
-async function relayerRpc<T>(relayerUrl: string, method: string, params: unknown): Promise<T> {
+export async function relayerRpc<T>(relayerUrl: string, method: string, params: unknown): Promise<T> {
   const payload = { jsonrpc: "2.0", id: Date.now(), method, params };
   console.log(`[oneshot.rpc] ${method} →`, JSON.stringify(params, null, 2));
 
@@ -86,7 +86,7 @@ function encodeIntentExecution(intent: AgentIntent): { target: `0x${string}`; va
  * Select the correct 1Shot relayer endpoint based on chain ID.
  * Testnets → .dev, Mainnets → .com (per SKILL.md line 23-25)
  */
-function relayerUrlForChain(chainId: number): string {
+export function relayerUrlForChain(chainId: number): string {
   return chainId === 84532 || chainId === 11155111
     ? "https://relayer.1shotapi.dev/relayers"
     : "https://relayer.1shotapi.com/relayers";

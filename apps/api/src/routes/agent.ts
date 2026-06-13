@@ -114,6 +114,7 @@ router.post("/execute", async (req, res) => {
     return res.json({
       success: result.success,
       taskId: result.taskId,
+      chainId: intent.chainId, // Include chainId so frontend knows where to poll
       txHash: result.txHash,
       status: result.status,
       message: result.message || (result.status === "confirmed"
@@ -123,6 +124,46 @@ router.post("/execute", async (req, res) => {
 
   } catch (error: any) {
     console.error("[agent/execute] Execution Error:", error.message);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+/**
+ * GET /api/agent/status/:chainId/:taskId
+ * Returns the on-chain status of the transaction from the 1Shot Relayer
+ */
+router.get("/status/:chainId/:taskId", async (req, res) => {
+  try {
+    const { chainId, taskId } = req.params;
+    if (!chainId || !taskId) {
+      return res.status(400).json({ success: false, error: "Missing chainId or taskId" });
+    }
+
+    const { relayerUrlForChain, relayerRpc } = await import("../lib/oneshot");
+    const relayerUrl = relayerUrlForChain(Number(chainId));
+
+    const result = await relayerRpc<{
+      status: 100 | 110 | 200 | 400 | 500;
+      memo?: string;
+      hash?: string;
+      receipt?: any;
+      message?: string;
+      data?: unknown;
+    }>(relayerUrl, "relayer_getStatus", { id: taskId, logs: false });
+
+    // Map numeric status to frontend states
+    if (result.status === 200) {
+      return res.json({ success: true, status: "confirmed", txHash: result.receipt?.transactionHash || result.hash });
+    }
+    if (result.status === 400 || result.status === 500) {
+      return res.json({ success: true, status: "failed", error: result.message || "Transaction reverted" });
+    }
+    
+    // 100 or 110
+    return res.json({ success: true, status: "executing", txHash: result.hash });
+
+  } catch (error: any) {
+    console.error("[agent/status] Status fetch error:", error.message);
     res.status(500).json({ success: false, error: error.message });
   }
 });
