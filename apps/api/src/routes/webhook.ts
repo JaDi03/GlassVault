@@ -7,17 +7,22 @@ const router = Router();
 type Jwk = { kty: "OKP"; crv: "Ed25519"; kid: string; x: string };
 type Jwks = { keys: Jwk[] };
 
-let jwksCache: { fetchedAt: number; keys: Map<string, crypto.KeyObject> } | null = null;
+let jwksCacheDev: { fetchedAt: number; keys: Map<string, crypto.KeyObject> } | null = null;
+let jwksCacheCom: { fetchedAt: number; keys: Map<string, crypto.KeyObject> } | null = null;
 const JWKS_TTL_MS = 10 * 60_000; // 10 minutes
-const JWKS_URL = "https://relayer.1shotapi.com/.well-known/jwks.json";
 
-async function getJwks(force = false): Promise<Map<string, crypto.KeyObject>> {
-  if (!force && jwksCache && Date.now() - jwksCache.fetchedAt < JWKS_TTL_MS) {
-    return jwksCache.keys;
+async function getJwks(isTestnet: boolean, force = false): Promise<Map<string, crypto.KeyObject>> {
+  const cache = isTestnet ? jwksCacheDev : jwksCacheCom;
+  if (!force && cache && Date.now() - cache.fetchedAt < JWKS_TTL_MS) {
+    return cache.keys;
   }
   
+  const url = isTestnet 
+    ? "https://relayer.1shotapi.dev/.well-known/jwks.json"
+    : "https://relayer.1shotapi.com/.well-known/jwks.json";
+
   try {
-    const res = await fetch(JWKS_URL);
+    const res = await fetch(url);
     if (!res.ok) throw new Error(`JWKS fetch failed: ${res.status}`);
     const { keys } = (await res.json()) as Jwks;
     const map = new Map<string, crypto.KeyObject>();
@@ -30,7 +35,10 @@ async function getJwks(force = false): Promise<Map<string, crypto.KeyObject>> {
         map.set(k.kid, pubKey);
       }
     }
-    jwksCache = { fetchedAt: Date.now(), keys: map };
+    
+    if (isTestnet) jwksCacheDev = { fetchedAt: Date.now(), keys: map };
+    else jwksCacheCom = { fetchedAt: Date.now(), keys: map };
+    
     return map;
   } catch (err: any) {
     console.error("[1shot-webhook] Error fetching JWKS:", err.message);
@@ -43,10 +51,13 @@ async function verifyRelayerWebhook(body: Record<string, unknown>): Promise<bool
   const keyId = body.keyId as string | undefined;
   if (!sigB64 || !keyId) return false;
 
-  let keys = await getJwks();
+  const data = body.data as any;
+  const isTestnet = data?.chainId === "11155111" || data?.chainId === "84532";
+
+  let keys = await getJwks(isTestnet);
   let pub = keys.get(keyId);
   if (!pub) {
-    keys = await getJwks(true); // force refresh on miss (key rotation)
+    keys = await getJwks(isTestnet, true); // force refresh on miss (key rotation)
     pub = keys.get(keyId);
     if (!pub) return false;
   }
