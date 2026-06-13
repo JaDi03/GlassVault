@@ -39,55 +39,46 @@
 GlassVault is built to showcase the bleeding edge of Ethereum account abstraction using the provided hackathon resources. Here is how we integrated each core component:
 
 ### 1. MetaMask Smart Accounts Kit & EIP-7715 (Advanced Permissions)
-Instead of forcing users to sign every single transaction or give up their private keys, GlassVault uses the **MetaMask Smart Accounts Kit** to request **Advanced Permissions (EIP-7715)**. 
-- **How it works:** When you connect your wallet, GlassVault calls `wallet_requestExecutionPermissions`. MetaMask opens a native, human-readable popup asking the user to authorize a specific scoped action (e.g., `erc20-token-periodic` for USDC transfers).
-- **Result:** The Agent receives a cryptographic `PermissionContext` that allows it to execute on behalf of the user, strictly within the boundaries set by the user.
 
-### 2. ERC-7710 Delegation & 1Shot Relayer (Gasless Execution)
-Once the Agent has the permission context, it needs to execute the transaction without making the user pay for gas. We achieve this using the **1Shot API** and **ERC-7710 (Delegated Transactions)**.
+GlassVault is not just an AI interface; it is a **secure Multi-Agent orchestration engine** built on top of the [MetaMask Smart Accounts Kit](https://github.com/MetaMask/smart-accounts). To protect users against one of the biggest threats to Web3 AI (Prompt Injection), we implemented **Granular Transitive Permissions (EIP-7710/EIP-7715 Redelegation)**.
+
+Instead of granting blanket execution permissions to a single agent, GlassVault utilizes a strict Just-In-Time (JIT) redelegation chain:
+
+1. **EIP-7702 & EIP-7715 (User -> Chat Agent):** The user's standard EOA is dynamically wrapped into a `Stateless7702` virtual smart account. The user signs a periodic allowance (e.g., $50 USDC/day) granting restricted access to the **Chat Agent**.
+2. **JIT Redelegation (Chat Agent -> Security Agent):** The Chat Agent parses the intent. Instead of executing, it dynamically *redelegates* the exact requested amount (Transfer + Relayer Fee) to the **Security Agent**.
+3. **Security Firewall:** The Security Agent acts as an isolated firewall. It evaluates the prompt using heuristics and a secondary LLM to detect Prompt Injection attacks. If malicious, the redelegation is destroyed.
+4. **Final Redelegation (Security Agent -> 1Shot Relayer):** If validated as safe, the Security Agent *redelegates* that exact sub-budget to the 1Shot Relayer.
+5. **Gasless Execution:** The 1Shot API executes the final transaction on-chain, paying gas in USDC on behalf of the user.
+
+#### Orchestration Workflow
 
 ```mermaid
-graph LR
-    subgraph User Environment
-        A[MetaMask EOA]
-        B[EIP-7702 Upgrade]
-        C[EIP-7715 Permission]
-        A -->|Grants| C
-        A -.->|Stateless| B
-    end
+sequenceDiagram
+    participant User as User (MetaMask)
+    participant ChatAgent as Chat Agent (Parser)
+    participant SecAgent as Security Agent (Firewall)
+    participant Relayer as 1Shot Relayer (Executor)
 
-    subgraph Agent Backend
-        D[AI Intent Parser]
-        E[1Shot Estimate]
-        F[1Shot Send]
-        C --> D
-        D -->|Validates intent| E
-        E -->|Locks gas price| F
+    Note over User,ChatAgent: 1. Global Budget (EIP-7715)
+    User->>ChatAgent: Delegates 50 USDC/day
+    
+    Note over ChatAgent: Prompt Injection Attempt
+    
+    Note over ChatAgent,SecAgent: 2. JIT Redelegation Attempt
+    ChatAgent->>SecAgent: Redelegation (e.g. 50 USDC to 0xAttacker)
+    
+    Note over SecAgent: 3. HYBRID VALIDATION
+    SecAgent-->>SecAgent: Level 1: Heuristic Filter
+    SecAgent-->>SecAgent: Level 2: LLM Auditor ("Is this an attack?")
+    
+    alt Is Malicious (Prompt Injection)
+        SecAgent--xUser: REJECTED: Destroys redelegation
+    else Is Safe
+        Note over SecAgent,Relayer: 4. Final JIT Authorization
+        SecAgent->>Relayer: Security Redelegation -> 1Shot
+        Relayer->>Blockchain: Gasless On-Chain Execution
     end
-
-    subgraph 1Shot Relayer
-        G[Pay gas in ETH]
-        H[Redeem Delegation]
-        I[Execute Transfer]
-        F --> G
-        G --> H
-        H --> I
-    end
-
-    style A fill:#E2761B,stroke:#fff,stroke-width:2px,color:#fff
-    style C fill:#E2761B,stroke:#fff,stroke-width:2px,color:#fff
-    style D fill:#125DA3,stroke:#fff,stroke-width:2px,color:#fff
-    style E fill:#239aaa,stroke:#fff,stroke-width:2px,color:#fff
-    style F fill:#239aaa,stroke:#fff,stroke-width:2px,color:#fff
-    style H fill:#239aaa,stroke:#fff,stroke-width:2px,color:#fff
-    style I fill:#10b981,stroke:#fff,stroke-width:2px,color:#fff
 ```
-
-- **How it works:** 
-  1. The backend uses `relayer_estimate7710Transaction` to dynamically calculate the fee in USDC.
-  2. The backend batches the *Fee Transfer* and the *User's Target Transfer* together.
-  3. It sends this batch to `relayer_send7710Transaction` along with the EIP-7715 permission context.
-  4. The 1Shot Relayer pays the ETH gas fee on-chain, executes `Redeem Delegations`, takes its USDC fee, and executes the user's intent.
 
 ---
 
