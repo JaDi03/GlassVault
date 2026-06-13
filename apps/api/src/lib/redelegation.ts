@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/ban-ts-comment */
 // @ts-nocheck
 // NOTE: This file uses @metamask/smart-accounts-kit which has a type-level
 // conflict with the root viem version (dual viem instance issue). The runtime
