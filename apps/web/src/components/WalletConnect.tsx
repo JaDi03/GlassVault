@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { SupportedChainId } from "@glassvault/shared";
 import { DelegationPanel } from "./DelegationPanel";
 import { grantAgentPermissions } from "../lib/delegation";
@@ -22,7 +22,7 @@ export function WalletConnect({ selectedChainId, onConnect, activeSession, setAc
 
   const disconnectWallet = async () => {
     try {
-      if (window.ethereum) {
+      if ((window as any).ethereum) {
         await (window as any).ethereum.request({
           method: "wallet_revokePermissions",
           params: [{ eth_accounts: {} }]

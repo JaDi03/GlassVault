@@ -24,6 +24,10 @@ function App() {
   });
 
   useEffect(() => {
+    if (userAddress) console.log("User connected:", userAddress);
+  }, [userAddress]);
+
+  useEffect(() => {
     if (activeSession) {
       localStorage.setItem("glassvault_session", JSON.stringify(activeSession));
     } else {

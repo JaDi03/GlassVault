@@ -8,8 +8,7 @@
 // ---------------------------------------------------------------------------
 // Chain Configuration
 // ---------------------------------------------------------------------------
-
-export type SupportedChainId = 84532 | 10143;
+export type SupportedChainId = 84532;
 
 export interface ChainConfig {
   id: SupportedChainId;

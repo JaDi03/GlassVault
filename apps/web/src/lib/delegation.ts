@@ -1,5 +1,5 @@
 import { SupportedChainId } from "@glassvault/shared";
-import { createWalletClient, custom, createPublicClient, http, parseUnits } from "viem";
+import { createWalletClient, custom, parseUnits } from "viem";
 import { baseSepolia } from "viem/chains";
 import { bytesToHex } from "viem/utils";
 import { erc7715ProviderActions } from "@metamask/smart-accounts-kit/actions";
@@ -36,7 +36,7 @@ export async function grantAgentPermissions(
   expiryDays: number,
   chainId: SupportedChainId
 ) {
-  if (!window.ethereum) throw new Error("MetaMask is not installed.");
+  if (!(window as any).ethereum) throw new Error("MetaMask is not installed.");
 
   // Get the connected user's address
   const accounts = await (window as any).ethereum.request({
@@ -51,7 +51,7 @@ export async function grantAgentPermissions(
   const walletClient = createWalletClient({
     account: userAddress,
     chain,
-    transport: custom(window.ethereum),
+    transport: custom((window as any).ethereum),
   });
   const wallet7715 = walletClient.extend(erc7715ProviderActions());
 
