@@ -6,7 +6,8 @@ import stringify from "safe-stable-stringify";
 const router = Router();
 
 // Hook @noble/ed25519 hash to Node.js crypto for performance (required by the lib)
-ed.hashes.sha512 = (m: Uint8Array) =>
+// @ts-expect-error - The type definition in @noble/ed25519 v3 is missing sha512Sync
+ed.etc.sha512Sync = (m: Uint8Array) =>
   new Uint8Array(Crypto.createHash("sha512").update(Buffer.from(m)).digest());
 
 type Jwk = { kty: "OKP"; crv: "Ed25519"; kid: string; x: string };
