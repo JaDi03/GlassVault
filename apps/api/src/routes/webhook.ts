@@ -52,10 +52,16 @@ async function verifyRelayerWebhook(body: Record<string, unknown>): Promise<bool
   }
 
   const { signature: _omit, ...rest } = body; // canonicalize without signature
-  const message = Buffer.from(stringify(rest) as string);
+  const messageStr = stringify(rest) as string;
+  const message = Buffer.from(messageStr);
   const sig = Buffer.from(sigB64, "base64");
   
-  return crypto.verify(null, message, pub, sig);
+  const isValid = crypto.verify(null, message, pub, sig);
+  console.log("[1shot-webhook-debug] messageStr:", messageStr);
+  console.log("[1shot-webhook-debug] sigB64:", sigB64);
+  console.log("[1shot-webhook-debug] isValid:", isValid);
+  
+  return isValid;
 }
 
 /**
