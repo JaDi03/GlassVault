@@ -24,7 +24,6 @@ export function AgentChat({ activeSession }: AgentChatProps) {
   ]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const [pendingIntent, setPendingIntent] = useState<AgentIntent | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const scrollToBottom = () => {
@@ -48,7 +47,7 @@ export function AgentChat({ activeSession }: AgentChatProps) {
   };
 
   /**
-   * Step 1: Parse the user's intent via Venice AI
+   * Parse the user's intent via Venice AI and automatically execute it
    */
   const handleSend = async () => {
     if (!input.trim()) return;
@@ -60,6 +59,7 @@ export function AgentChat({ activeSession }: AgentChatProps) {
     setIsLoading(true);
 
     try {
+      // 1. Parse Intent
       const response = await fetch("/api/agent/parse", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -68,55 +68,29 @@ export function AgentChat({ activeSession }: AgentChatProps) {
 
       const data = await response.json();
 
-      if (data.success && data.data) {
-        const intent = data.data as AgentIntent;
-        setPendingIntent(intent);
-
-        addMessage({
-          role: "agent",
-          text: formatIntentSummary(intent),
-          intent,
-          status: "awaiting_confirm",
-        });
-      } else {
+      if (!data.success || !data.data) {
         throw new Error(data.error || "Unknown parse error");
       }
-    } catch (err: any) {
-      addMessage({
+
+      const intent = data.data as AgentIntent;
+
+      if (!activeSession?.context) {
+        addMessage({
+          role: "agent",
+          text: "⚠️ You need to grant a session key first. Use the delegation panel on the left to authorize the agent.",
+          status: "failed",
+        });
+        return;
+      }
+
+      // 2. Execute Automatically
+      const execMsgId = addMessage({
         role: "agent",
-        text: `❌ Failed to parse your request: ${err.message}`,
-        status: "failed",
+        text: `⏳ Understood: ${intent.action.toUpperCase()}. Executing immediately...`,
+        intent,
+        status: "executing",
       });
-    } finally {
-      setIsLoading(false);
-    }
-  };
 
-  /**
-   * Step 2: User confirms → execute via backend
-   */
-  const handleConfirmExecute = async () => {
-    if (!pendingIntent) return;
-
-    const intent = pendingIntent;
-    setPendingIntent(null);
-
-    if (!activeSession?.context) {
-      addMessage({
-        role: "agent",
-        text: "⚠️ You need to grant a session key first. Use the delegation panel on the left to authorize the agent.",
-        status: "failed",
-      });
-      return;
-    }
-
-    const execMsgId = addMessage({
-      role: "agent",
-      text: `⏳ Executing ${intent.action}...`,
-      status: "executing",
-    });
-
-    try {
       const execRes = await fetch("/api/agent/execute", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -142,19 +116,14 @@ export function AgentChat({ activeSession }: AgentChatProps) {
         throw new Error(execData.error || "Execution failed");
       }
     } catch (err: any) {
-      updateMessage(execMsgId, {
-        text: `❌ Execution failed: ${err.message}`,
+      addMessage({
+        role: "agent",
+        text: `❌ Failed to process your request: ${err.message}`,
         status: "failed",
       });
+    } finally {
+      setIsLoading(false);
     }
-  };
-
-  const handleRejectIntent = () => {
-    setPendingIntent(null);
-    addMessage({
-      role: "agent",
-      text: "👍 Cancelled. What else would you like to do?",
-    });
   };
 
   return (
@@ -175,55 +144,8 @@ export function AgentChat({ activeSession }: AgentChatProps) {
             <div className={`message-bubble ${msg.status || ""}`}>
               <p style={{ whiteSpace: "pre-wrap" }}>{msg.text}</p>
 
-              {/* Intent Confirmation Card */}
-              {msg.intent && msg.status === "awaiting_confirm" && pendingIntent && (
-                <div className="intent-card">
-                  <h4>📋 Transaction Details</h4>
-                  <div className="intent-details">
-                    <div className="intent-row">
-                      <span className="intent-label">Action</span>
-                      <span className="intent-value">{msg.intent.action.toUpperCase()}</span>
-                    </div>
-                    <div className="intent-row">
-                      <span className="intent-label">Amount</span>
-                      <span className="intent-value">{msg.intent.amount || "—"} {msg.intent.fromToken || ""}</span>
-                    </div>
-                    {msg.intent.toToken && (
-                      <div className="intent-row">
-                        <span className="intent-label">To Token</span>
-                        <span className="intent-value">{msg.intent.toToken}</span>
-                      </div>
-                    )}
-                    {msg.intent.recipient && (
-                      <div className="intent-row">
-                        <span className="intent-label">Recipient</span>
-                        <span className="intent-value" style={{ fontSize: "0.75rem" }}>
-                          {msg.intent.recipient}
-                        </span>
-                      </div>
-                    )}
-                    <div className="intent-row">
-                      <span className="intent-label">Chain</span>
-                      <span className="intent-value">{msg.intent.chainId === 84532 ? "Base Sepolia" : "Monad Testnet"}</span>
-                    </div>
-                    <div className="intent-row">
-                      <span className="intent-label">Confidence</span>
-                      <span className="intent-value">{(msg.intent.confidence * 100).toFixed(0)}%</span>
-                    </div>
-                  </div>
-                  <div className="intent-actions">
-                    <button className="btn-confirm" onClick={handleConfirmExecute}>
-                      ✅ Confirm & Execute
-                    </button>
-                    <button className="btn-reject" onClick={handleRejectIntent}>
-                      ❌ Cancel
-                    </button>
-                  </div>
-                </div>
-              )}
-
               {/* Completed intent (no longer pending) */}
-              {msg.intent && msg.status !== "awaiting_confirm" && (
+              {msg.intent && (
                 <div className="intent-card compact">
                   <div className="intent-row">
                     <span className="intent-label">Action</span>
@@ -285,18 +207,4 @@ export function AgentChat({ activeSession }: AgentChatProps) {
   );
 }
 
-/**
- * Formats the parsed intent into a human-readable summary.
- */
-function formatIntentSummary(intent: AgentIntent): string {
-  switch (intent.action) {
-    case "transfer":
-      return `I understood you want to **transfer ${intent.amount || "?"} ${intent.fromToken || "tokens"}** to \`${intent.recipient || "unknown"}\` on ${intent.chainId === 84532 ? "Base Sepolia" : "Monad Testnet"}.\n\nPlease confirm below to execute:`;
-    case "swap":
-      return `I understood you want to **swap ${intent.amount || "?"} ${intent.fromToken || "?"} → ${intent.toToken || "?"}** on ${intent.chainId === 84532 ? "Base Sepolia" : "Monad Testnet"}.\n\nPlease confirm below to execute:`;
-    case "portfolio_report":
-      return `I'll generate a **portfolio report** for your wallet.\n\nPlease confirm:`;
-    default:
-      return `I parsed your intent as: **${intent.action}**.\n\nPlease confirm below:`;
-  }
-}
+

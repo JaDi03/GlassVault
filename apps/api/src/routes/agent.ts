@@ -2,6 +2,8 @@ import { Router } from "express";
 import { parseIntentWithVenice } from "../lib/venice";
 import { getAgentAddress } from "../lib/agentWallet";
 import { executeVia1ShotRelayer } from "../lib/oneshot";
+import { SecurityFirewall } from "../lib/securityAgent";
+import { buildRedelegationChain } from "../lib/redelegation";
 
 const router = Router();
 
@@ -75,14 +77,41 @@ router.post("/execute", async (req, res) => {
     console.log("[agent/execute] --- REAL Execution Request ---");
     console.log(`[agent/execute] Action: ${intent.action}`);
     console.log(`[agent/execute] Chain: ${intent.chainId}`);
+
+    // ==============================================================
+    // STEP 1: SECURITY FIREWALL
+    // ==============================================================
+    console.log("[agent/execute] Validating intent in Security Firewall...");
+    // intent.rawIntent contains the original user prompt
+    const securityCheck = await SecurityFirewall.validatePromptSecurity(intent.rawIntent, intent);
+    
+    if (!securityCheck.safe) {
+      console.warn(`[agent/execute] ❌ TRANSACTION BLOCKED BY FIREWALL: ${securityCheck.reason}`);
+      return res.status(403).json({ 
+        success: false, 
+        error: "Blocked by Security Agent",
+        reason: securityCheck.reason
+      });
+    }
+    console.log("[agent/execute] ✅ Firewall passed. Preparing execution.");
+
     if (authorizationList) {
       console.log(`[agent/execute] Authorization list entries: ${authorizationList.length}`);
     }
 
-    // Execute via 1Shot Relayer (estimate → send → poll)
-    const result = await executeVia1ShotRelayer(signedDelegations, intent, authorizationList);
+    // ==============================================================
+    // STEP 2: EXECUTION WITH DYNAMIC JIT REDELEGATION
+    // ==============================================================
+    // We pass a callback to oneshot.ts so it can rebuild the chain
+    // if the gas estimate changes, ensuring the amount is always exact JIT.
+    const buildChainCb = async (feeAmount: bigint) => {
+      return await buildRedelegationChain(signedDelegations, intent, feeAmount);
+    };
 
-    // Forward the REAL status from the relayer, not a hardcoded "confirmed"
+    // Execute via 1Shot Relayer (estimate → send → poll)
+    const result = await executeVia1ShotRelayer(buildChainCb, intent, authorizationList);
+
+    // Forward the REAL status from the relayer
     return res.json({
       success: result.success,
       taskId: result.taskId,

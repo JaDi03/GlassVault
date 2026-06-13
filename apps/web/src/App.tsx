@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { ChainSelector } from "./components/ChainSelector";
 import { WalletConnect } from "./components/WalletConnect";
 import { AgentChat } from "./components/AgentChat";
@@ -13,7 +13,23 @@ import { SupportedChainId } from "@glassvault/shared";
 function App() {
   const [selectedChainId, setSelectedChainId] = useState<SupportedChainId>(84532);
   const [userAddress, setUserAddress] = useState<string | null>(null);
-  const [activeSession, setActiveSession] = useState<{ limit: number, expireDays: number, context?: any } | null>(null);
+  const [activeSession, setActiveSession] = useState<{ limit: number, expireDays: number, context?: any } | null>(() => {
+    try {
+      const saved = localStorage.getItem("glassvault_session");
+      if (saved) return JSON.parse(saved);
+    } catch (e) {
+      console.error("Failed to parse saved session", e);
+    }
+    return null;
+  });
+
+  useEffect(() => {
+    if (activeSession) {
+      localStorage.setItem("glassvault_session", JSON.stringify(activeSession));
+    } else {
+      localStorage.removeItem("glassvault_session");
+    }
+  }, [activeSession]);
 
   return (
     <div className="app-shell">

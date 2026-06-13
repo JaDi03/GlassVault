@@ -123,7 +123,7 @@ interface StatusResult {
  *   5. Poll relayer_getStatus until terminal state
  */
 export async function executeVia1ShotRelayer(
-  signedDelegations: any[],
+  buildChainCallback: (feeAmount: bigint) => Promise<any[]>,
   intent: AgentIntent,
   authorizationList?: any[]
 ) {
@@ -150,12 +150,12 @@ export async function executeVia1ShotRelayer(
     };
   }
 
-  function buildSendParams(currentFeeAmount: bigint) {
+  function buildSendParams(currentFeeAmount: bigint, chain: any[]) {
     const params: any = {
       chainId: intent.chainId.toString(),
       transactions: [
         {
-          permissionContext: signedDelegations,
+          permissionContext: chain,
           executions: [
             buildFeeExecution(currentFeeAmount),
             workExecution,
@@ -171,7 +171,8 @@ export async function executeVia1ShotRelayer(
 
   // Step 2: Estimate the transaction fee
   console.log("[oneshot] Step 2: Estimating transaction fee...");
-  let sendParams = buildSendParams(feeAmount);
+  let currentChain = await buildChainCallback(feeAmount);
+  let sendParams = buildSendParams(feeAmount, currentChain);
 
   let estimate: Estimate7710Result;
   try {
@@ -196,7 +197,8 @@ export async function executeVia1ShotRelayer(
   if (requiredFee !== feeAmount) {
     console.log(`[oneshot] Adjusting fee from ${feeAmount} to ${requiredFee} atoms...`);
     feeAmount = requiredFee;
-    sendParams = buildSendParams(feeAmount);
+    currentChain = await buildChainCallback(feeAmount);
+    sendParams = buildSendParams(feeAmount, currentChain);
 
     // Re-estimate with corrected fee (the context from first estimate is now stale)
     estimate = await relayerRpc<Estimate7710Result>(
